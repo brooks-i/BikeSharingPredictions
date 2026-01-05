@@ -1,5 +1,13 @@
 # Predicting Bike Sharing Demand in Seoul
 
+All analysis was conducted with R
+
+## Table of Contents
+- Aim of Project
+- Data exploration and wrangling
+- Modelling 
+- Final Model Prediction
+
 ## Aim of Project
 
 In this project, I aim to predict the bike sharing demand in Seoul,
@@ -42,7 +50,6 @@ names:
 I will change date into a date object, so that I can use it for feature
 engineering in the future.
 
-    # making date object in year-month-day form
     df$Date <- as.Date(df$Date, "%d/%m/%Y")
 
 ### Encoding categorical features
@@ -55,7 +62,6 @@ Functioning.Day, and Season.
 
     df <- dummy_cols(df, select_columns = c("Season"))
 
-    # removing old season feature
     df <- subset(df, select = -c(Season))
 
 Holiday and Functioning.Day are binary features, which makes one-hot
@@ -136,25 +142,21 @@ reports them.
     count_missing <- function (x) {
       presence_na <- 0
 
-      # iterate through each row
       for (i in colnames(df)) {
-        # find rows with NA values
         na_rows <- which(is.na(df[i]))
-        # find num NA's
         num_na <- length(na_rows)
-        # report findings
         if (num_na > 0) {
           print(paste0(i, " has ", num_na, " NA values in rows: "))
           print(na_rows)
           presence_na <- presence_na + 1
         }
-      } # end of for
+      }
 
       if (presence_na == 0) {
         print("There are no missing values in the dataset.")
       }
       
-    } # end of function
+    } 
 
     count_missing(0)
 
@@ -167,15 +169,12 @@ impute them.
 First, I will randomly removing some NA values from Wind.Speed
 
     set.seed(101010)
-    # randomly generating 10 row numbers from df
     random_rows <- sample(nrow(df), 10, replace = F)
 
-    # making 10 rows NA
     for (i in random_rows) {
       df$Wind.Speed[i] <- NA
     }
 
-    # checking it worked
     count_missing(0)
 
     ## [1] "Wind.Speed has 10 NA values in rows: "
@@ -198,7 +197,6 @@ median-imputation.
       }
     }
 
-    # checking it worked
     count_missing(0)
 
     ## [1] "There are no missing values in the dataset."
@@ -216,15 +214,12 @@ the quality of my imputation.
 
 **Finding which columns have outliers**
 
-    # keeping track of columns with outliers
     outlier_cols <- c()
 
-    # going through numeric features only
     for (i in colnames(num_df)) {
       # z-score outlier identification
       outliers <- which(abs(scale(num_df[i])) >= 3)
       
-      # message if outliers found
       if (length(outliers) > 0) {
         print(paste0(i, " has ", length(outliers), " outliers"))
         outlier_cols[i] <- i
@@ -242,12 +237,9 @@ impact their skews may have on imputation.
 
 **Median-imputing outliers**
 
-    # looping through columns that were found to have outliers
     for (i in outlier_cols) {
-      # getting median value for the column
       median_val <- median(df[[i]])
 
-      # identifying rows with outliers
       outliers <- which(abs(scale(num_df[i])) >= 3)
       
       for (j in outliers) {
@@ -302,10 +294,8 @@ sensitive to large differences in data ranges.
     num_df <- df[numeric_features]
     cat_df <- df[, -which(names(df) %in% numeric_features)] 
 
-    # applying z-score standardization to numeric features
     z_df <- data.frame(cat_df, apply(num_df, 2, scale))
 
-    # checking it worked
     distributions(0)
 
 ![](Brooks.I.BikeSharingProject_files/figure-markdown_strict/standardization-1.png)
@@ -394,24 +384,18 @@ method.
     tree_test <- list()
 
     for (i in 1:length(seeds)) {
-      # setting a unique seed for each split
       set.seed(seeds[i])
-      # randomly splitting 80-20 for lr and svm
       lr_svm_train_index <- createDataPartition(z_df$Rented.Bike.Count, p = 0.8, list = F, times = 1)
       
-      # splitting for tree
       set.seed(seeds[i])
-      # randomly splitting 80-20 for tree
       tree_train_index <- createDataPartition(tree_df$Rented.Bike.Count, p = 0.8, list = F, times = 1)
 
-      # adding to list of data frames
       lr_svm_train[[i]] <- z_df[lr_svm_train_index,]
       lr_svm_test[[i]] <- z_df[-lr_svm_train_index,]
       tree_train[[i]] <- tree_df[tree_train_index,]
       tree_test[[i]] <- tree_df[-tree_train_index,]
     }
 
-    # checking it worked
     length(lr_svm_train)
 
     ## [1] 3
@@ -426,20 +410,16 @@ I will build a generalized evaluation function that will return RMSE and
 R2 statistics in order to evaluate model fit and accuracy.
 
     model_stats <- function(model, data) {
-      # get predictions
       predictions <- predict(model, data)
-      
-      # calculate RMSE
+
       sq_err <- (data["Rented.Bike.Count"] - predictions)^2
       MSE <- mean(sq_err[["Rented.Bike.Count"]])
       RMSE <- sqrt(MSE)
       
-      # calculate R2
       RSS <- sum(sq_err)
       TSS <- sum((data["Rented.Bike.Count"] - mean(data[["Rented.Bike.Count"]]))^2)
       R2 <- 1 - (RSS / TSS)
       
-      # printing message
       print(paste0("The RMSE is: ", round(RMSE, 3)))
       print(paste0("The R2 is: ", round(R2, 3)))
       
@@ -455,10 +435,8 @@ splits of the data
     homogeneous_ensemble <- function(first_model, second_model, third_model, new_data) {
       final_predictions <- c()
       
-      # going through each row in the data
       for (i in 1:nrow(new_data)) {
         
-        # making predictions with each model
         model1_prediction <- predict(first_model, new_data[i,])
         model2_prediction <- predict(second_model, new_data[i,])
         model3_prediction <- predict(third_model, new_data[i,])
@@ -467,7 +445,6 @@ splits of the data
         average_prediction <- (model1_prediction + model2_prediction + 
                                  model3_prediction) / 3
         
-        # adding to vector of final prediction values
         final_predictions[i] <- average_prediction
       }
       
@@ -674,7 +651,6 @@ hyperparameters
                           data = tree_train[[2]],
                           control = ctree_control(mincriterion = 0.01))
 
-    # evaluating with holdout method
     stats_tree_model_2 <- model_stats(tree_model_2, tree_test[[2]])
 
     ## [1] "The RMSE is: 291.645"
@@ -697,7 +673,6 @@ hyperparameters
                           data = tree_train[[3]],
                           control = ctree_control(mincriterion = 0.01))
 
-    # evaluating with holdout method
     stats_tree_model_3 <- model_stats(tree_model_3, tree_test[[3]])
 
     ## [1] "The RMSE is: 312.126"
@@ -892,11 +867,8 @@ This function takes a weighted average of predictions from each of the
 linear regression, decision tree, and SVM ensemble models.
 
     heterogeneous_ensemble <- function(linreg_models, tree_models, svm_models, weights, lin_data, tree_data) {
-      T
-      # vector of final, consensus predictions
       consensus_predictions <- c()
-      
-      # weights that each model has an impact on the final prediction
+
       linreg_weight <- weights[1]
       tree_weight <- weights[2]
       svm_weight <- weights[3]
@@ -905,15 +877,12 @@ linear regression, decision tree, and SVM ensemble models.
       num_linreg <- nrow(lin_data)
       num_tree <- nrow(tree_data)
       if (num_linreg != num_tree) {
-        # warning message
         print("Data prepped for linear regression and svm is a different length from data prepped for decision trees")
-        # stop ensemble model
         break
       }
       
       final_predictions <- c()
 
-      # going through each row
       for (i in 1:num_linreg) {
         # making prediction with linear regression homogeneous ensemble
         linreg_prediction <- homogeneous_ensemble(linreg_models[[1]],
@@ -949,17 +918,14 @@ linear regression, decision tree, and SVM ensemble models.
 This function evaluates the R2 and RMSE of the heterogeneous ensemble
 
     heterogeneous_stats <- function(model_predictions, data) {
-      # calculate RMSE
       sq_err <- (data["Rented.Bike.Count"] - model_predictions)^2
       MSE <- mean(sq_err[["Rented.Bike.Count"]])
       RMSE <- sqrt(MSE)
       
-      # Calculate R2
       RSS <- sum(sq_err)
       TSS <- sum((data["Rented.Bike.Count"] - mean(data[["Rented.Bike.Count"]]))^2)
       R2 <- 1 - (RSS / TSS)
       
-      # printing message
       print(paste0("The RMSE is: ", round(RMSE, 3)))
       print(paste0("The R2 is: ", round(R2, 3)))
     }
