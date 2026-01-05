@@ -1,4 +1,4 @@
-**Aim of Project**
+## Aim of Project
 
 In this project, I aim to predict the bike sharing demand in Seoul,
 South Korea, based on predictive weather condition and date variables. I
