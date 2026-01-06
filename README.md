@@ -3,10 +3,10 @@
 All analysis was conducted with R
 
 ## Table of Contents
-- Aim of Project
-- Data exploration and wrangling
-- Modelling 
-- Final Model Prediction
+- [Aim of Project](#aim-of-project)
+- [Data exploration and wrangling](#data-exploration-and-wrangling)
+- [Modelling](#modelling)
+- [Final Model Prediction](#final-model-prediction)
 
 ## Aim of Project
 
@@ -368,7 +368,7 @@ Looking at breakdowns of the first four principal components
 -   2nd Principal Component: High values for Temperature,
     Solar.Radiation, and Visibility
 
-## Modeling
+## Modelling
 
 ### Splitting data
 
